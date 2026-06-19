@@ -38,11 +38,11 @@ class AntiStallCodexTests(unittest.TestCase):
             "last_assistant_message": "summary",
         })
 
-    def test_inactive_hook_is_silent(self):
+    def test_inactive_hook_allows(self):
         with tempfile.TemporaryDirectory() as home, tempfile.TemporaryDirectory() as cwd:
             result = self.run_cmd(["hook-stop"], cwd, pathlib.Path(home), self.payload(cwd))
             self.assertEqual(result.returncode, 0)
-            self.assertEqual(result.stdout, "")
+            self.assertTrue(json.loads(result.stdout)["continue"])
 
     def test_on_off_aliases_change_state(self):
         with tempfile.TemporaryDirectory() as home, tempfile.TemporaryDirectory() as cwd:

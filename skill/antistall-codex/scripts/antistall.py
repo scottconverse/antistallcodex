@@ -215,7 +215,7 @@ def hook_stop() -> int:
     cwd = payload.get("cwd") if isinstance(payload.get("cwd"), str) else os.getcwd()
     state = load_state(cwd)
     if not state.get("active"):
-        return 0
+        hook_continue()
 
     session_id = payload.get("session_id") if isinstance(payload.get("session_id"), str) else None
     cpath = count_path(cwd, session_id)
