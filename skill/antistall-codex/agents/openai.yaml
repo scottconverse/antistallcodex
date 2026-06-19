@@ -1,0 +1,4 @@
+interface:
+  display_name: "AntiStallCodex"
+  short_description: "AntistallON / AntistallOFF"
+  default_prompt: "Use $antistall-codex for AntistallON to arm the sprint gate or AntistallOFF to turn it off."
