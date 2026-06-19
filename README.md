@@ -4,6 +4,8 @@ A Codex Desktop Stop-hook sprint gate that keeps autonomous work from ending ear
 
 Version 0.1.0 - MIT licensed - built for Codex Desktop and Codex hooks
 
+[Landing page](https://scottconverse.github.io/antistallcodex/)
+
 AntiStallCodex is the Codex-specific sibling of AntiStallClaude. It uses Codex's `Stop` hook to prevent the announce-then-halt failure: the agent says what it will do next, writes a tidy progress summary, and then stops with authorized work still sitting on the table.
 
 ## The short version

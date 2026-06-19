@@ -1,0 +1,840 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="AntiStallCodex is a Codex Desktop Stop-hook sprint gate with simple AntistallON and AntistallOFF controls.">
+  <title>AntiStallCodex</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #f7f3e8;
+      --muted: #b8b3a7;
+      --paper: #151412;
+      --panel: #201e1a;
+      --line: rgba(247, 243, 232, .18);
+      --green: #64d98b;
+      --amber: #f0b84a;
+      --red: #ff6b5f;
+      --cyan: #79d8ff;
+      --violet: #b69cff;
+      --shadow: 0 24px 80px rgba(0, 0, 0, .38);
+      --max: 1160px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      background: #0e0d0b;
+    }
+
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background:
+        linear-gradient(180deg, rgba(14, 13, 11, .8), #151412 48%, #f3ead6 48%, #f3ead6 100%);
+      letter-spacing: 0;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    a:focus-visible,
+    button:focus-visible {
+      outline: 3px solid var(--cyan);
+      outline-offset: 4px;
+    }
+
+    .skip {
+      position: absolute;
+      left: 1rem;
+      top: -4rem;
+      z-index: 20;
+      padding: .75rem 1rem;
+      background: var(--ink);
+      color: #111;
+      border-radius: 6px;
+    }
+
+    .skip:focus {
+      top: 1rem;
+    }
+
+    .hero {
+      position: relative;
+      min-height: 92vh;
+      overflow: hidden;
+      border-bottom: 1px solid rgba(247, 243, 232, .12);
+      isolation: isolate;
+    }
+
+    #gate-canvas {
+      position: absolute;
+      inset: 0;
+      z-index: -2;
+      width: 100%;
+      height: 100%;
+      background: #0e0d0b;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      background:
+        linear-gradient(90deg, rgba(14, 13, 11, .95) 0%, rgba(14, 13, 11, .78) 42%, rgba(14, 13, 11, .22) 100%),
+        repeating-linear-gradient(0deg, rgba(255, 255, 255, .035), rgba(255, 255, 255, .035) 1px, transparent 1px, transparent 4px);
+      pointer-events: none;
+    }
+
+    .nav {
+      width: min(var(--max), calc(100% - 40px));
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 22px 0;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: .7rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      font-size: .82rem;
+    }
+
+    .mark {
+      width: 24px;
+      height: 24px;
+      border: 2px solid var(--green);
+      display: grid;
+      place-items: center;
+      box-shadow: 0 0 0 5px rgba(100, 217, 139, .12);
+    }
+
+    .mark::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      background: var(--green);
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      color: var(--muted);
+      font-size: .92rem;
+    }
+
+    .nav-links a {
+      padding: .65rem .75rem;
+      border-radius: 6px;
+    }
+
+    .nav-links a:hover {
+      color: var(--ink);
+      background: rgba(247, 243, 232, .08);
+    }
+
+    .hero-inner {
+      width: min(var(--max), calc(100% - 40px));
+      margin: 0 auto;
+      min-height: calc(92vh - 70px);
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(280px, 440px);
+      align-items: center;
+      gap: clamp(2rem, 5vw, 5rem);
+      padding: 4vh 0 12vh;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: .55rem;
+      margin: 0 0 1.25rem;
+      color: var(--green);
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      font-size: .82rem;
+      text-transform: uppercase;
+    }
+
+    .pulse {
+      width: 9px;
+      height: 9px;
+      background: var(--green);
+      box-shadow: 0 0 20px var(--green);
+    }
+
+    h1 {
+      margin: 0;
+      max-width: 11ch;
+      font-size: clamp(4rem, 12vw, 10.8rem);
+      line-height: .78;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    .hero-copy {
+      margin: 1.5rem 0 0;
+      max-width: 660px;
+      color: #ded8cb;
+      font-size: clamp(1.1rem, 2.1vw, 1.55rem);
+      line-height: 1.35;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .8rem;
+      margin-top: 2rem;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 46px;
+      padding: 0 1rem;
+      border-radius: 6px;
+      border: 1px solid rgba(247, 243, 232, .24);
+      font-weight: 800;
+      font-size: .92rem;
+      transition: transform .2s ease, background .2s ease, border-color .2s ease;
+    }
+
+    .button:hover {
+      transform: translateY(-2px);
+    }
+
+    .button.primary {
+      background: var(--green);
+      color: #09100b;
+      border-color: var(--green);
+    }
+
+    .button.secondary {
+      background: rgba(247, 243, 232, .07);
+      color: var(--ink);
+    }
+
+    .command-board {
+      align-self: end;
+      margin-bottom: min(9vh, 80px);
+      border: 1px solid rgba(247, 243, 232, .16);
+      background: rgba(32, 30, 26, .78);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(16px);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .board-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: .75rem .9rem;
+      border-bottom: 1px solid rgba(247, 243, 232, .12);
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      font-size: .72rem;
+      color: var(--muted);
+    }
+
+    .lights {
+      display: flex;
+      gap: .38rem;
+    }
+
+    .lights span {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--red);
+    }
+
+    .lights span:nth-child(2) {
+      background: var(--amber);
+    }
+
+    .lights span:nth-child(3) {
+      background: var(--green);
+    }
+
+    .command {
+      padding: 1rem;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      display: grid;
+      gap: .8rem;
+      font-size: .9rem;
+    }
+
+    .line {
+      display: grid;
+      grid-template-columns: 7.2rem 1fr;
+      gap: .8rem;
+      align-items: start;
+      padding-bottom: .8rem;
+      border-bottom: 1px dashed rgba(247, 243, 232, .13);
+    }
+
+    .line:last-child {
+      border-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .label {
+      color: var(--muted);
+    }
+
+    .on {
+      color: var(--green);
+      font-weight: 800;
+    }
+
+    .off {
+      color: var(--red);
+      font-weight: 800;
+    }
+
+    main {
+      color: #17130d;
+      background: #f3ead6;
+    }
+
+    section {
+      padding: clamp(4rem, 8vw, 7rem) 0;
+    }
+
+    .section-inner {
+      width: min(var(--max), calc(100% - 40px));
+      margin: 0 auto;
+    }
+
+    .section-kicker {
+      margin: 0 0 1rem;
+      color: #756a56;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      text-transform: uppercase;
+      font-size: .78rem;
+      font-weight: 800;
+    }
+
+    h2 {
+      margin: 0;
+      max-width: 850px;
+      font-size: clamp(2.2rem, 6vw, 5.4rem);
+      line-height: .92;
+      text-transform: uppercase;
+      letter-spacing: 0;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1px;
+      margin-top: 3rem;
+      background: rgba(23, 19, 13, .16);
+      border: 1px solid rgba(23, 19, 13, .16);
+    }
+
+    .feature {
+      background: #f8f1df;
+      padding: 1.35rem;
+      min-height: 210px;
+    }
+
+    .feature strong {
+      display: block;
+      margin-bottom: 1rem;
+      font-size: 1.1rem;
+    }
+
+    .feature p {
+      margin: 0;
+      color: #5c523f;
+      line-height: 1.55;
+    }
+
+    .steps {
+      display: grid;
+      gap: 1rem;
+      margin-top: 3rem;
+    }
+
+    .step {
+      display: grid;
+      grid-template-columns: 7rem 1fr minmax(170px, 260px);
+      gap: 1rem;
+      align-items: center;
+      padding: 1rem 0;
+      border-top: 1px solid rgba(23, 19, 13, .18);
+    }
+
+    .step:last-child {
+      border-bottom: 1px solid rgba(23, 19, 13, .18);
+    }
+
+    .step code {
+      display: inline-block;
+      width: fit-content;
+      padding: .45rem .55rem;
+      background: #17130d;
+      color: var(--green);
+      border-radius: 4px;
+      font-size: .86rem;
+    }
+
+    .step p {
+      margin: 0;
+      color: #5c523f;
+      line-height: 1.5;
+    }
+
+    .badge {
+      justify-self: end;
+      padding: .5rem .65rem;
+      border: 1px solid rgba(23, 19, 13, .2);
+      border-radius: 999px;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      font-size: .76rem;
+      color: #4c4436;
+    }
+
+    .band {
+      background: #17130d;
+      color: var(--ink);
+      border-top: 1px solid rgba(247, 243, 232, .12);
+      border-bottom: 1px solid rgba(247, 243, 232, .12);
+    }
+
+    .band .section-kicker {
+      color: var(--green);
+    }
+
+    .band h2 {
+      color: var(--ink);
+    }
+
+    .compare {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1px;
+      margin-top: 3rem;
+      background: rgba(247, 243, 232, .14);
+      border: 1px solid rgba(247, 243, 232, .14);
+    }
+
+    .compare-panel {
+      background: #211f1a;
+      padding: 1.35rem;
+    }
+
+    .compare-panel h3 {
+      margin: 0 0 1rem;
+      font-size: 1.15rem;
+    }
+
+    .compare-panel ul {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: .9rem;
+      color: #d7d0c1;
+      line-height: 1.45;
+    }
+
+    .compare-panel li::before {
+      content: "->";
+      color: var(--amber);
+      margin-right: .5rem;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    }
+
+    .install {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(280px, 470px);
+      gap: 2rem;
+      align-items: start;
+    }
+
+    pre {
+      margin: 0;
+      padding: 1rem;
+      overflow-x: auto;
+      color: #f7f3e8;
+      background: #17130d;
+      border-radius: 8px;
+      border: 1px solid rgba(23, 19, 13, .18);
+      box-shadow: 0 20px 60px rgba(23, 19, 13, .18);
+      font-size: .88rem;
+      line-height: 1.55;
+    }
+
+    .footer {
+      background: #f3ead6;
+      color: #17130d;
+      padding: 2rem 0 3rem;
+      border-top: 1px solid rgba(23, 19, 13, .18);
+    }
+
+    .footer-inner {
+      width: min(var(--max), calc(100% - 40px));
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      color: #655b47;
+      font-size: .92rem;
+    }
+
+    @media (max-width: 860px) {
+      .nav {
+        align-items: flex-start;
+      }
+
+      .nav-links {
+        display: none;
+      }
+
+      .hero-inner,
+      .install {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-inner {
+        align-items: end;
+        padding-top: 10vh;
+      }
+
+      .command-board {
+        margin-bottom: 0;
+      }
+
+      .grid-3,
+      .compare {
+        grid-template-columns: 1fr;
+      }
+
+      .step {
+        grid-template-columns: 1fr;
+      }
+
+      .badge {
+        justify-self: start;
+      }
+
+      .footer-inner {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .hero,
+      .hero-inner {
+        min-height: auto;
+      }
+
+      h1 {
+        font-size: clamp(3.25rem, 19vw, 5.6rem);
+      }
+
+      .line {
+        grid-template-columns: 1fr;
+        gap: .25rem;
+      }
+
+      .actions {
+        flex-direction: column;
+      }
+
+      .button {
+        width: 100%;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html {
+        scroll-behavior: auto;
+      }
+
+      .button {
+        transition: none;
+      }
+
+      .button:hover {
+        transform: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="hero">
+    <canvas id="gate-canvas" aria-hidden="true"></canvas>
+    <nav class="nav" aria-label="Primary">
+      <a class="brand" href="#top" aria-label="AntiStallCodex home">
+        <span class="mark" aria-hidden="true"></span>
+        <span>AntiStallCodex</span>
+      </a>
+      <div class="nav-links">
+        <a href="#why">Why</a>
+        <a href="#flow">Flow</a>
+        <a href="#install">Install</a>
+        <a href="https://github.com/scottconverse/antistallcodex">GitHub</a>
+      </div>
+    </nav>
+
+    <div class="hero-inner" id="top">
+      <div>
+        <p class="eyebrow"><span class="pulse" aria-hidden="true"></span> Codex Desktop Stop-hook gate</p>
+        <h1>AntiStallCodex</h1>
+        <p class="hero-copy">A global Codex Desktop skill and Stop hook that keeps approved autonomous work moving until it is done, blocked, or waiting on a real answer.</p>
+        <div class="actions">
+          <a class="button primary" href="https://github.com/scottconverse/antistallcodex">Get the repo</a>
+          <a class="button secondary" href="#install">Install steps</a>
+        </div>
+      </div>
+
+      <aside class="command-board" aria-label="AntiStallCodex command examples">
+        <div class="board-head">
+          <span>codex.desktop</span>
+          <div class="lights" aria-hidden="true"><span></span><span></span><span></span></div>
+        </div>
+        <div class="command">
+          <div class="line">
+            <span class="label">start</span>
+            <span><span class="on">AntistallON:</span> finish this task before stopping.</span>
+          </div>
+          <div class="line">
+            <span class="label">allowed stop</span>
+            <span>Done / Blocked / Question</span>
+          </div>
+          <div class="line">
+            <span class="label">turn off</span>
+            <span><span class="off">AntistallOFF</span></span>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </header>
+
+  <main id="main">
+    <section id="why">
+      <div class="section-inner">
+        <p class="section-kicker">What it stops</p>
+        <h2>The polite progress summary that quietly abandons the sprint.</h2>
+        <div class="grid-3">
+          <article class="feature">
+            <strong>Harder than a memory note</strong>
+            <p>AntiStallCodex uses Codex's lifecycle hook system instead of relying on the model to remember a rule while context gets crowded.</p>
+          </article>
+          <article class="feature">
+            <strong>Simple desktop command</strong>
+            <p>Users arm it with one phrase: <code>AntistallON</code>. Turning it off is just as plain: <code>AntistallOFF</code>.</p>
+          </article>
+          <article class="feature">
+            <strong>Scoped by project</strong>
+            <p>The hook installs globally, but it only acts when a sprint is armed for the current project directory.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="band" id="flow">
+      <div class="section-inner">
+        <p class="section-kicker">Stop-hook flow</p>
+        <h2>Stopping becomes a deliberate ticket, not a drift.</h2>
+        <div class="compare">
+          <div class="compare-panel">
+            <h3>Without the gate</h3>
+            <ul>
+              <li>Codex summarizes work while unfinished tasks remain.</li>
+              <li>The session stops at a convenient boundary.</li>
+              <li>The human returns to a half-finished job.</li>
+            </ul>
+          </div>
+          <div class="compare-panel">
+            <h3>With AntiStallCodex</h3>
+            <ul>
+              <li>The Stop hook checks for an armed sprint.</li>
+              <li>No ticket means Codex gets a continuation prompt.</li>
+              <li>Legitimate stops are logged as Done, Blocked, or Question.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-inner">
+        <p class="section-kicker">Desktop ritual</p>
+        <h2>Two words for the part you actually touch.</h2>
+        <div class="steps">
+          <div class="step">
+            <code>AntistallON</code>
+            <p>Arm a sprint with the specific outcome Codex should reach before stopping.</p>
+            <span class="badge">active sprint</span>
+          </div>
+          <div class="step">
+            <code>Done</code>
+            <p>Allow a clean stop when all authorized work is complete and verified.</p>
+            <span class="badge">disarms</span>
+          </div>
+          <div class="step">
+            <code>Blocked</code>
+            <p>Allow a stop only when a human-only decision, credential, or external system prevents useful progress.</p>
+            <span class="badge">stays explicit</span>
+          </div>
+          <div class="step">
+            <code>AntistallOFF</code>
+            <p>Turn the gate off for the current project whenever you want normal stopping behavior.</p>
+            <span class="badge">off switch</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="install">
+      <div class="section-inner install">
+        <div>
+          <p class="section-kicker">Install</p>
+          <h2>Clone, install, trust the hook.</h2>
+        </div>
+        <pre><code>git clone https://github.com/scottconverse/antistallcodex.git
+python antistallcodex/install.py
+
+# In Codex Desktop:
+# open /hooks and trust AntiStallCodex
+
+AntistallON: finish this task completely before stopping.
+AntistallOFF</code></pre>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <span>MIT licensed. Built for Codex Desktop.</span>
+      <a href="https://github.com/scottconverse/antistallcodex">github.com/scottconverse/antistallcodex</a>
+    </div>
+  </footer>
+
+  <script>
+    const canvas = document.getElementById("gate-canvas");
+    const ctx = canvas.getContext("2d");
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let width = 0;
+    let height = 0;
+    let dpr = 1;
+    let raf = 0;
+
+    const nodes = [
+      { x: .68, y: .19, label: "turn", color: "#79d8ff" },
+      { x: .84, y: .32, label: "Stop", color: "#f0b84a" },
+      { x: .72, y: .52, label: "gate", color: "#64d98b" },
+      { x: .89, y: .72, label: "continue", color: "#b69cff" },
+      { x: .58, y: .78, label: "ticket", color: "#ff6b5f" }
+    ];
+
+    function resize() {
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      width = canvas.clientWidth;
+      height = canvas.clientHeight;
+      canvas.width = Math.floor(width * dpr);
+      canvas.height = Math.floor(height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    function drawGrid(t) {
+      ctx.strokeStyle = "rgba(247, 243, 232, .06)";
+      ctx.lineWidth = 1;
+      const spacing = Math.max(34, Math.min(58, width / 20));
+      const drift = reduceMotion ? 0 : (t * .018) % spacing;
+      for (let x = width * .42 + drift; x < width + spacing; x += spacing) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x - width * .18, height);
+        ctx.stroke();
+      }
+      for (let y = -spacing + drift; y < height + spacing; y += spacing) {
+        ctx.beginPath();
+        ctx.moveTo(width * .38, y);
+        ctx.lineTo(width, y + height * .18);
+        ctx.stroke();
+      }
+    }
+
+    function drawNode(node, t, index) {
+      const x = node.x * width;
+      const y = node.y * height;
+      const pulse = reduceMotion ? 0 : Math.sin(t * .003 + index) * 4;
+      ctx.fillStyle = "rgba(14, 13, 11, .8)";
+      ctx.strokeStyle = node.color;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.rect(x - 38 - pulse, y - 22 - pulse / 2, 76 + pulse * 2, 44 + pulse);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = node.color;
+      ctx.font = "700 12px Consolas, monospace";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(node.label, x, y + 1);
+    }
+
+    function drawLinks(t) {
+      ctx.lineWidth = 2;
+      for (let i = 0; i < nodes.length - 1; i++) {
+        const a = nodes[i];
+        const b = nodes[i + 1];
+        const ax = a.x * width;
+        const ay = a.y * height;
+        const bx = b.x * width;
+        const by = b.y * height;
+        const progress = reduceMotion ? .7 : ((t * .00022 + i * .21) % 1);
+        ctx.strokeStyle = "rgba(247, 243, 232, .22)";
+        ctx.beginPath();
+        ctx.moveTo(ax, ay);
+        ctx.lineTo(bx, by);
+        ctx.stroke();
+        ctx.fillStyle = i === 2 ? "#64d98b" : "#f0b84a";
+        ctx.beginPath();
+        ctx.arc(ax + (bx - ax) * progress, ay + (by - ay) * progress, 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function draw(t) {
+      ctx.clearRect(0, 0, width, height);
+      drawGrid(t);
+      drawLinks(t);
+      nodes.forEach((node, index) => drawNode(node, t, index));
+      if (!reduceMotion) {
+        raf = requestAnimationFrame(draw);
+      }
+    }
+
+    resize();
+    draw(0);
+    window.addEventListener("resize", () => {
+      resize();
+      if (reduceMotion) draw(0);
+    });
+    if (!reduceMotion) raf = requestAnimationFrame(draw);
+    window.addEventListener("pagehide", () => cancelAnimationFrame(raf));
+  </script>
+</body>
+</html>
