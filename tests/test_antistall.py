@@ -86,15 +86,15 @@ class AntiStallCodexTests(unittest.TestCase):
             status = self.run_cmd(["status"], cwd, home_path)
             self.assertFalse(json.loads(status.stdout)["active"])
 
-    def test_install_hook_writes_global_hooks_json(self):
+    def test_install_hook_writes_global_config_toml(self):
         with tempfile.TemporaryDirectory() as home, tempfile.TemporaryDirectory() as cwd:
             home_path = pathlib.Path(home)
             result = self.run_cmd(["install-hook"], cwd, home_path)
             self.assertEqual(result.returncode, 0, result.stderr)
-            hooks = json.loads((home_path / "hooks.json").read_text(encoding="utf-8"))
-            stop_hooks = hooks["hooks"]["Stop"]
-            command = stop_hooks[0]["hooks"][0]["command"]
-            self.assertIn("antistall.py", command)
+            config = (home_path / "config.toml").read_text(encoding="utf-8")
+            self.assertIn("[[hooks.Stop]]", config)
+            self.assertIn("hooks = true", config)
+            self.assertIn("antistall.py", config)
 
 
 if __name__ == "__main__":

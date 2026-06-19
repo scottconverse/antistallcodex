@@ -60,7 +60,7 @@ Codex requires non-managed hooks to be reviewed and trusted. After installing, o
 
 If the hook does not fire:
 
-- Check `~/.codex/hooks.json`.
+- Check `~/.codex/config.toml` for the marked AntiStallCodex hook block.
 - Check that hooks are enabled in Codex config.
 - Check `/hooks` trust state.
 - Start a fresh thread or reload Codex Desktop.

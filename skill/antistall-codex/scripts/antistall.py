@@ -5,7 +5,6 @@ import hashlib
 import json
 import os
 import pathlib
-import shutil
 import sys
 import time
 from typing import Any, NoReturn
@@ -118,48 +117,71 @@ def command_path() -> str:
 
 
 def install_hook() -> int:
-    hooks_path = codex_home() / "hooks.json"
+    config_path = codex_home() / "config.toml"
     script = command_path()
-    command = f'python "{script}" hook-stop'
-    command_windows = f'python "{script}" hook-stop'
-    hooks_doc = read_json(hooks_path) if hooks_path.exists() else None
-    if hooks_doc is None:
-        hooks_doc = {"hooks": {}}
-    hooks = hooks_doc.setdefault("hooks", {})
-    stop_entries = hooks.setdefault("Stop", [])
-    if not isinstance(stop_entries, list):
-        print(f"{hooks_path} has hooks.Stop but it is not a list", file=sys.stderr)
-        return 3
+    block = f"""
+# BEGIN AntiStallCodex hook
+[[hooks.Stop]]
 
-    found = False
-    for entry in stop_entries:
-        for hook in entry.get("hooks", []) if isinstance(entry, dict) else []:
-            if isinstance(hook, dict) and "antistall.py" in str(hook.get("command", "")):
-                hook["type"] = "command"
-                hook["command"] = command
-                hook["commandWindows"] = command_windows
-                hook["timeout"] = 30
-                hook["statusMessage"] = "Checking AntiStallCodex sprint gate"
-                found = True
+[[hooks.Stop.hooks]]
+type = "command"
+command = 'python "{script}" hook-stop'
+command_windows = 'python "{script}" hook-stop'
+timeout = 30
+statusMessage = "Checking AntiStallCodex sprint gate"
+# END AntiStallCodex hook
+"""
 
-    if not found:
-        stop_entries.append({
-            "hooks": [{
-                "type": "command",
-                "command": command,
-                "commandWindows": command_windows,
-                "timeout": 30,
-                "statusMessage": "Checking AntiStallCodex sprint gate",
-            }]
-        })
+    text = config_path.read_text(encoding="utf-8") if config_path.exists() else ""
+    if config_path.exists():
+        backup = config_path.with_name(f"config.toml.bak-antistall-{int(time.time())}")
+        backup.write_text(text, encoding="utf-8")
+        print(f"backed up {config_path} -> {backup.name}")
 
-    if hooks_path.exists():
-        backup = hooks_path.with_name(f"hooks.json.bak-{int(time.time())}")
-        shutil.copyfile(hooks_path, backup)
-        print(f"backed up {hooks_path} -> {backup.name}")
-    write_json(hooks_path, hooks_doc)
-    print(f"installed AntiStallCodex Stop hook in {hooks_path}")
-    print("Next: open /hooks in Codex, review and trust the new hook if prompted.")
+    lines = text.splitlines()
+    out: list[str] = []
+    in_old_block = False
+    for line in lines:
+        if line.strip() == "# BEGIN AntiStallCodex hook":
+            in_old_block = True
+            continue
+        if line.strip() == "# END AntiStallCodex hook":
+            in_old_block = False
+            continue
+        if not in_old_block:
+            out.append(line)
+    text = "\n".join(out).rstrip() + ("\n" if out else "")
+
+    if "[features]" in text:
+        parts = text.splitlines()
+        result: list[str] = []
+        in_features = False
+        saw_hooks = False
+        for line in parts:
+            stripped = line.strip()
+            if stripped == "[features]":
+                in_features = True
+                saw_hooks = False
+                result.append(line)
+                continue
+            if in_features and stripped.startswith("[") and stripped.endswith("]"):
+                if not saw_hooks:
+                    result.append("hooks = true")
+                in_features = False
+            if in_features and stripped.startswith("hooks"):
+                result.append("hooks = true")
+                saw_hooks = True
+                continue
+            result.append(line)
+        if in_features and not saw_hooks:
+            result.append("hooks = true")
+        text = "\n".join(result).rstrip() + "\n"
+    else:
+        text = text.rstrip() + "\n\n[features]\nhooks = true\n"
+
+    config_path.write_text(text.rstrip() + "\n" + block.lstrip(), encoding="utf-8")
+    print(f"installed AntiStallCodex Stop hook inline in {config_path}")
+    print("Next: restart or refresh Codex Desktop, then open /hooks and trust the hook if prompted.")
     return 0
 
 

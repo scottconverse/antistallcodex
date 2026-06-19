@@ -37,7 +37,7 @@ Codex supports lifecycle hooks. `Stop` runs when a turn is about to stop. If a S
 
 Codex creates a continuation prompt from `reason` and keeps going.
 
-AntiStallCodex installs a global Stop hook in `~/.codex/hooks.json`. The hook is inert unless a sprint has been armed for the current project directory. Once armed, Codex can stop only by writing a fresh one-use ticket:
+AntiStallCodex installs a global Stop hook inline in `~/.codex/config.toml`. The hook is inert unless a sprint has been armed for the current project directory. Once armed, Codex can stop only by writing a fresh one-use ticket:
 
 - `DONE` - the whole authorized queue is complete and the sprint disarms
 - `BLOCKED` - a human-only decision or external access blocks all useful progress
@@ -57,7 +57,7 @@ Then in Codex Desktop, open `/hooks` and trust the AntiStallCodex hook if prompt
 The installer:
 
 - copies `skill/antistall-codex/` into `~/.codex/skills/antistall-codex/`
-- writes or merges a global `~/.codex/hooks.json` Stop hook
+- writes or merges a global `~/.codex/config.toml` Stop hook
 - leaves the hook inert until `AntistallON` is used in a project
 
 ## Desktop usage
@@ -117,7 +117,7 @@ On Windows the same script lives under:
 
 AntiStallCodex is intentionally fail-open.
 
-- If no sprint is armed, the hook exits silently.
+- If no sprint is armed, the hook returns `{"continue": true}`.
 - If `stop_hook_active` is true, the hook allows the stop so it cannot loop on its own continuation.
 - If the per-session block counter is unreadable, corrupt, or unwritable, the hook allows the stop.
 - If the block cap is reached, the hook allows the stop and reports stale sprint state.
@@ -158,7 +158,7 @@ Behavioral test inside Codex Desktop:
 
 ## Removal
 
-Delete `~/.codex/skills/antistall-codex/`, remove the AntiStallCodex entry from `~/.codex/hooks.json`, and optionally delete `~/.codex/antistall-codex/`.
+Delete `~/.codex/skills/antistall-codex/`, remove the marked AntiStallCodex block from `~/.codex/config.toml`, and optionally delete `~/.codex/antistall-codex/`.
 
 ## License
 
